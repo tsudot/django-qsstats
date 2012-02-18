@@ -35,6 +35,31 @@ class QuerySetStats(object):
         self.update_today()
 
     # Aggregates for a specific period of time
+    def for_minute(self, now, minute_range=15, date_field=None, aggregate_field=None, aggregate_class=None):
+        date_field = date_field or self.date_field
+        aggregate_class = aggregate_class or self.aggregate_class
+        aggregate_field = aggregate_field or self.aggregate_field
+
+        # Fetching the last minute
+        last_minute = now - datetime.timedelta(minutes=minute_range)
+
+        return self.get_aggregate_minute(now, last_minute, date_field, aggregate_field, aggregate_class)
+
+    def this_minute(self, minute_range=15, date_field=None, aggregate_field=None, aggregate_class=None):
+        return self.for_minute(datetime.datetime.now(), minute_range, date_field, date_field, aggregate_class)
+
+    def for_hour(self, now, hour_range=1,date_field=None, aggregate_field=None, aggregate_class=None):
+        date_field = date_field or self.date_field
+        aggregate_class = aggregate_class or self.aggregate_class
+        aggregate_field = aggregate_field or self.aggregate_field
+
+        # Fetching the time of the last hour
+        last_hour = now - datetime.timedelta(hours=hour_range)
+
+        return self.get_aggregate_time(now, last_hour, date_field, aggregate_field, aggregate_class)
+
+    def this_hour(self, hour_range=1, date_field=None, aggregate_field=None, aggregate_class=None):
+        return self.for_hour(datetime.datetime.now(), hour_range, date_field, aggregate_class)
 
     def for_day(self, dt, date_field=None, aggregate_field=None, aggregate_class=None):
         date_field = date_field or self.date_field
@@ -143,6 +168,16 @@ class QuerySetStats(object):
 
     def get_aggregate(self, first_day, last_day, date_field, aggregate_field, aggregate_class):
         kwargs = {'%s__range' % date_field : (first_day, last_day)}
+        agg = self.qs.filter(**kwargs).aggregate(agg=aggregate_class(aggregate_field))
+        return agg['agg']
+
+    def get_aggregate_time(self, now, last_hour, date_field, aggregate_field, aggregate_class):
+        kwargs = {'%s__range' % date_field : (last_hour, now)}
+        agg = self.qs.filter(**kwargs).aggregate(agg=aggregate_class(aggregate_field))
+        return agg['agg']
+
+    def get_aggregate_minute(self, now, last_minute, date_field, aggregate_field, aggregate_class):
+        kwargs = {'%s__range' % date_field : (last_minute, now)}
         agg = self.qs.filter(**kwargs).aggregate(agg=aggregate_class(aggregate_field))
         return agg['agg']
 
